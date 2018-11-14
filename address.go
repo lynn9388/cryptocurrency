@@ -23,6 +23,9 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/sha256"
+	"encoding/gob"
+	"io/ioutil"
+	"os"
 
 	"github.com/lynn9388/cryptocurrency/base58"
 	"go.uber.org/zap"
@@ -32,11 +35,77 @@ import (
 const version = byte(0x00)
 const checksumLength = 4
 
+// Wallet stores a collection of account.
+type Wallet struct {
+	Keys map[string]*ecdsa.PrivateKey
+}
+
 var log *zap.SugaredLogger
 
 func init() {
 	logger, _ := zap.NewDevelopment()
 	log = logger.Sugar()
+}
+
+// NewWallet creates a wallet and loads data from a file if it exists.
+func NewWallet(filename string) *Wallet {
+	wallet := new(Wallet)
+	wallet.Keys = make(map[string]*ecdsa.PrivateKey)
+
+	if _, err := os.Stat(filename); !os.IsNotExist(err) {
+		content, err := ioutil.ReadFile(filename)
+		if err != nil {
+			log.Panic(err)
+		}
+
+		gob.Register(elliptic.P256())
+		decoder := gob.NewDecoder(bytes.NewReader(content))
+		err = decoder.Decode(wallet)
+		if err != nil {
+			log.Panic(err)
+		}
+	}
+
+	return wallet
+}
+
+// SaveToFile saves wallet to a file.
+func (w *Wallet) SaveToFile(filename string) {
+	var buf bytes.Buffer
+
+	gob.Register(elliptic.P256())
+	encoder := gob.NewEncoder(&buf)
+	err := encoder.Encode(w)
+	if err != nil {
+		log.Panic(err)
+	}
+
+	err = ioutil.WriteFile(filename, buf.Bytes(), 0644)
+	if err != nil {
+		log.Panic(err)
+	}
+}
+
+// CreateAccount creates a new account address and adds it to wallet.
+func (w *Wallet) CreateAccount() string {
+	key := NewKey()
+	addr := string(GetAddress(&key.PublicKey))
+	w.Keys[addr] = key
+	return addr
+}
+
+// GetKey returns a key by its address.
+func (w *Wallet) GetKey(addr string) *ecdsa.PrivateKey {
+	return w.Keys[addr]
+}
+
+// GetAddresses returns all the addresses stored in the wallet.
+func (w *Wallet) GetAddresses() []string {
+	var addrs []string
+	for addr := range w.Keys {
+		addrs = append(addrs, addr)
+	}
+	return addrs
 }
 
 // NewKey creates and returns a new ECDSA private key.

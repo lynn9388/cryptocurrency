@@ -18,10 +18,83 @@ package cryptocurrency
 
 import (
 	"crypto/sha256"
+	"os"
 	"testing"
 
 	"golang.org/x/crypto/ripemd160"
 )
+
+func TestNewWallet(t *testing.T) {
+	filename := "wallet.dat"
+	defer os.Remove(filename)
+
+	wallet := NewWallet(filename)
+	if len(wallet.GetAddresses()) != 0 {
+		t.FailNow()
+	}
+
+	wallet.CreateAccount()
+	wallet.SaveToFile(filename)
+	newWallet := NewWallet(filename)
+	if len(newWallet.GetAddresses()) != 1 {
+		t.FailNow()
+	}
+}
+
+func TestWallet_SaveToFile(t *testing.T) {
+	filename := "wallet.dat"
+	defer os.Remove(filename)
+
+	wallet := NewWallet(filename)
+	addressesNum := len(wallet.GetAddresses())
+	wallet.CreateAccount()
+	wallet.SaveToFile(filename)
+
+	newWallet := NewWallet(filename)
+	newAddressesNum := len(newWallet.GetAddresses())
+	if newAddressesNum != addressesNum+1 {
+		t.FailNow()
+	}
+}
+
+func TestWallet_CreateAccount(t *testing.T) {
+	filename := "wallet.dat"
+	defer os.Remove(filename)
+
+	wallet := NewWallet(filename)
+	addressesNum := len(wallet.GetAddresses())
+	wallet.CreateAccount()
+	newAddressesNum := len(wallet.GetAddresses())
+	if newAddressesNum != addressesNum+1 {
+		t.FailNow()
+	}
+}
+
+func TestWallet_GetKey(t *testing.T) {
+	filename := "wallet.dat"
+	defer os.Remove(filename)
+
+	wallet := NewWallet(filename)
+	addr := wallet.CreateAccount()
+	if wallet.GetKey(addr) == nil {
+		t.FailNow()
+	}
+}
+
+func TestWallet_GetAddresses(t *testing.T) {
+	filename := "wallet.dat"
+	defer os.Remove(filename)
+
+	wallet := NewWallet(filename)
+	if len(wallet.GetAddresses()) != 0 {
+		t.FailNow()
+	}
+
+	wallet.CreateAccount()
+	if len(wallet.GetAddresses()) != 1 {
+		t.FailNow()
+	}
+}
 
 func TestNewKey(t *testing.T) {
 	key1 := NewKey()
