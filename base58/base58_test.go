@@ -16,21 +16,35 @@
 
 package base58
 
-import "fmt"
+import (
+	"bytes"
+	"testing"
+)
 
-func ExampleEncode() {
+func TestEncode(t *testing.T) {
 	encoded := Encode([]byte("lynn9388"))
-
-	fmt.Println(string(encoded))
-	// Output:
-	// K9LYdys2U8F
+	if string(encoded) != "K9LYdys2U8F" {
+		t.FailNow()
+	}
 }
 
-func ExampleDecode() {
-	encoded := Encode([]byte("lynn9388"))
-	decoded := Decode(encoded)
+func TestDecode(t *testing.T) {
+	test := []byte("lynn9388")
+	encoded := Encode(test)
+	decoded, err := Decode(encoded)
+	if err != nil {
+		t.Error(err)
+	}
 
-	fmt.Println(string(decoded))
-	// Output:
-	// lynn9388
+	if !bytes.Equal(test, decoded) {
+		t.FailNow()
+	}
+
+	tests := []string{"0", "O", "I", "l", "+", "/"}
+	for _, invalidTest := range tests {
+		decoded, err = Decode([]byte(invalidTest))
+		if err == nil {
+			t.Errorf("failed to test invalid data: %v", []byte(invalidTest))
+		}
+	}
 }

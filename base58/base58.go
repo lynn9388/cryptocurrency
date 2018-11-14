@@ -21,6 +21,8 @@ package base58
 import (
 	"bytes"
 	"math/big"
+
+	"github.com/pkg/errors"
 )
 
 // alphabet is the encoding scheme used for Bitcoin address.
@@ -55,13 +57,17 @@ func Encode(data []byte) []byte {
 }
 
 // Decode decodes a Base58-based data to byte slice.
-func Decode(data []byte) []byte {
+func Decode(data []byte) ([]byte, error) {
 	x := big.NewInt(0)
 
 	base := big.NewInt(int64(len(alphabet)))
 
 	for _, b := range data {
 		index := bytes.IndexByte(alphabet, b)
+		if index == -1 {
+			return nil, errors.New("failed to decode data: data is not Base58-based")
+		}
+
 		x.Mul(x, base)
 		x.Add(x, big.NewInt(int64(index)))
 	}
@@ -75,5 +81,5 @@ func Decode(data []byte) []byte {
 		y = append([]byte{0x00}, y...)
 	}
 
-	return y
+	return y, nil
 }
