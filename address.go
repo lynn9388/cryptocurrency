@@ -120,11 +120,20 @@ func NewKey() *ecdsa.PrivateKey {
 
 // GetAddress returns the address from the public key.
 func GetAddress(pk *ecdsa.PublicKey) []byte {
-	hash := HashPublicKey(pk)
+	hash := HashPubKey(pk)
 	data := append([]byte{version}, hash...)
 	checksum := checksum(data)
 	address := append(data, checksum[:checksumLength]...)
 	return base58.Encode(address)
+}
+
+// GetPubKeyHash returns the hash of public key from an address.
+func GetPubKeyHash(addr []byte) []byte {
+	decodedHash, err := base58.Decode(addr)
+	if err != nil {
+		log.Panic(err)
+	}
+	return decodedHash[1 : len(decodedHash)-checksumLength]
 }
 
 // IsAddressValid checks if address is valid.
@@ -140,8 +149,8 @@ func IsAddressValid(addr []byte) bool {
 	return bytes.Equal(actualChecksum, targetChecksum)
 }
 
-// HashPublicKey uses RIPEMED160(SHA256(PK)) to hash public key.
-func HashPublicKey(pk *ecdsa.PublicKey) []byte {
+// HashPubKey uses RIPEMED160(SHA256(PK)) to hash public key.
+func HashPubKey(pk *ecdsa.PublicKey) []byte {
 	sha := sha256.Sum256(append(pk.X.Bytes(), pk.Y.Bytes()...))
 
 	ripemd := ripemd160.New()

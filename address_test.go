@@ -17,6 +17,7 @@
 package cryptocurrency
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"os"
 	"testing"
@@ -112,6 +113,14 @@ func TestGetAddress(t *testing.T) {
 	}
 }
 
+func TestGetPubKeyHash(t *testing.T) {
+	key := NewKey()
+	addr := GetAddress(&key.PublicKey)
+	if !bytes.Equal(GetPubKeyHash(addr), HashPubKey(&key.PublicKey)) {
+		t.FailNow()
+	}
+}
+
 func TestIsAddressValid(t *testing.T) {
 	key := NewKey()
 	addr := GetAddress(&key.PublicKey)
@@ -120,9 +129,9 @@ func TestIsAddressValid(t *testing.T) {
 	}
 }
 
-func TestHashPublicKey(t *testing.T) {
+func TestHashPubKey(t *testing.T) {
 	key := NewKey()
-	hash := HashPublicKey(&key.PublicKey)
+	hash := HashPubKey(&key.PublicKey)
 	if len(hash) != ripemd160.Size {
 		t.Error("hash size is not 20")
 	}
