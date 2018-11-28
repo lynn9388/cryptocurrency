@@ -35,9 +35,10 @@ import (
 const version = byte(0x00)
 const checksumLength = 4
 
-// Wallet stores a collection of account.
+// Wallet stores a collection of account. Each account is consists of an
+// address (getting from a public key) and a private key.
 type Wallet struct {
-	Keys map[string]*ecdsa.PrivateKey
+	Accounts map[string]*ecdsa.PrivateKey
 }
 
 var log *zap.SugaredLogger
@@ -50,7 +51,7 @@ func init() {
 // NewWallet creates a wallet and loads data from a file if it exists.
 func NewWallet(filename string) *Wallet {
 	wallet := new(Wallet)
-	wallet.Keys = make(map[string]*ecdsa.PrivateKey)
+	wallet.Accounts = make(map[string]*ecdsa.PrivateKey)
 
 	if _, err := os.Stat(filename); !os.IsNotExist(err) {
 		content, err := ioutil.ReadFile(filename)
@@ -89,20 +90,20 @@ func (w *Wallet) SaveToFile(filename string) {
 // CreateAccount creates a new account address and adds it to wallet.
 func (w *Wallet) CreateAccount() string {
 	key := NewKey()
-	addr := string(GetAddress(&key.PublicKey))
-	w.Keys[addr] = key
+	addr := string(NewAddress(&key.PublicKey))
+	w.Accounts[addr] = key
 	return addr
 }
 
 // GetKey returns a key by its address.
 func (w *Wallet) GetKey(addr string) *ecdsa.PrivateKey {
-	return w.Keys[addr]
+	return w.Accounts[addr]
 }
 
 // GetAddresses returns all the addresses stored in the wallet.
 func (w *Wallet) GetAddresses() []string {
 	var addrs []string
-	for addr := range w.Keys {
+	for addr := range w.Accounts {
 		addrs = append(addrs, addr)
 	}
 	return addrs
@@ -118,22 +119,13 @@ func NewKey() *ecdsa.PrivateKey {
 	return sk
 }
 
-// GetAddress returns the address from the public key.
-func GetAddress(pk *ecdsa.PublicKey) []byte {
+// NewAddress returns the address from the public key.
+func NewAddress(pk *ecdsa.PublicKey) []byte {
 	hash := HashPubKey(pk)
 	data := append([]byte{version}, hash...)
 	checksum := checksum(data)
 	address := append(data, checksum[:checksumLength]...)
 	return base58.Encode(address)
-}
-
-// GetPubKeyHash returns the hash of public key from an address.
-func GetPubKeyHash(addr []byte) []byte {
-	decodedHash, err := base58.Decode(addr)
-	if err != nil {
-		log.Panic(err)
-	}
-	return decodedHash[1 : len(decodedHash)-checksumLength]
 }
 
 // IsAddressValid checks if address is valid.
@@ -160,6 +152,15 @@ func HashPubKey(pk *ecdsa.PublicKey) []byte {
 	}
 
 	return ripemd.Sum(nil)
+}
+
+// ToPubKeyHash returns the hash of public key from an address.
+func ToPubKeyHash(addr []byte) []byte {
+	decodedHash, err := base58.Decode(addr)
+	if err != nil {
+		log.Panic(err)
+	}
+	return decodedHash[1 : len(decodedHash)-checksumLength]
 }
 
 // checksum uses SHA256(SHA256(data)) to generate a checksum for data.

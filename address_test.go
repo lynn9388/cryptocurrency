@@ -105,25 +105,17 @@ func TestNewKey(t *testing.T) {
 	}
 }
 
-func TestGetAddress(t *testing.T) {
+func TestNewAddress(t *testing.T) {
 	key := NewKey()
-	addr := GetAddress(&key.PublicKey)
+	addr := NewAddress(&key.PublicKey)
 	if len(addr) != 34 {
-		t.FailNow()
-	}
-}
-
-func TestGetPubKeyHash(t *testing.T) {
-	key := NewKey()
-	addr := GetAddress(&key.PublicKey)
-	if !bytes.Equal(GetPubKeyHash(addr), HashPubKey(&key.PublicKey)) {
 		t.FailNow()
 	}
 }
 
 func TestIsAddressValid(t *testing.T) {
 	key := NewKey()
-	addr := GetAddress(&key.PublicKey)
+	addr := NewAddress(&key.PublicKey)
 	if IsAddressValid(addr) == false {
 		t.FailNow()
 	}
@@ -134,6 +126,14 @@ func TestHashPubKey(t *testing.T) {
 	hash := HashPubKey(&key.PublicKey)
 	if len(hash) != ripemd160.Size {
 		t.Error("hash size is not 20")
+	}
+}
+
+func TestToPubKeyHash(t *testing.T) {
+	key := NewKey()
+	addr := NewAddress(&key.PublicKey)
+	if !bytes.Equal(ToPubKeyHash(addr), HashPubKey(&key.PublicKey)) {
+		t.FailNow()
 	}
 }
 
